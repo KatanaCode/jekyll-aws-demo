@@ -1,0 +1,69 @@
+##
+# Define commands to be used more than once here:
+references:
+  container_config: &container_config
+    working_directory: ~/www/
+    docker:
+      - image: circleci/ruby:2.6.6-node-browsers
+
+##
+# CircleCI config starts here...
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@1.2.1
+  bundle: toshimaru/bundle-install@0.3.1
+
+jobs:
+  build:
+    <<: *container_config
+    steps:
+      # Pull code from GitHub
+      - checkout
+      - run:
+          name: "Bundle fix"
+          command: gem update bundler
+      - bundle/bundle-install
+      - save_cache:
+          paths: .
+          key: repo-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: "Build site"
+          command: bundle exec jekyll build --trace --lsi --strict_front_matter --profile
+      - save_cache:
+          paths:
+            - ./_site
+          key: jekyll-site-{{ .Branch }}-{{ .Revision }}
+
+  deploy:
+    <<: *container_config
+    executor: aws-cli/default
+    steps:
+      # Pull code from GitHub
+      - restore_cache:
+          keys:
+            - repo-{{ .Branch }}-{{ .Revision }}
+            - repo-{{ .Branch }}
+            - repo-
+      - checkout
+      - restore_cache:
+          keys:
+            - jekyll-site-{{ .Branch }}-{{ .Revision }}
+            - jekyll-site-
+      - aws-cli/install
+      - run:
+          name: "Deploy to S3"
+          command: aws s3 sync _site s3://$AWS_BUCKET_NAME --delete
+
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
