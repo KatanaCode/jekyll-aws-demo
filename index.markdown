@@ -4,3 +4,7 @@
 
 layout: home
 ---
+
+This site is a demo Jekyll site created for this tutorial here:
+
+[https://katanacode.com/2020/07/24/how-to-host-jekyll-website-on-aws-s3-with-circle-ci.html](https://katanacode.com/2020/07/24/how-to-host-jekyll-website-on-aws-s3-with-circle-ci.html)
